@@ -1,0 +1,51 @@
+
+#Home_pos = posj(0,0,90,0,90,0)
+Home_pos = posx(359, 42.64, 344.37, 148.29, -179.06, -61.2)
+movel(Home_pos,50,50)
+#movel(posx(265.29, 150.85, 29.95, 89.86, 179.96, 149.91),50,50)
+#posx(480.48, -72.43, 30.81, 179.62, -179.44, -119.89)
+set_velj(50); set_accj(50); set_velx(50); set_accx(50)
+
+sock = client_socket_open("192.168.137.254", 200)
+#sock = client_socket_open("127.0.0.1", 200)
+
+while 1:
+
+    msg = "shot" + "\r\n"
+    client_socket_write(sock, msg.encode())
+    
+    data = client_socket_read(sock)
+    rx_data = data[1].decode()
+    
+    rx_data = rx_data.replace("\r\n", "")
+    rx_data_s = rx_data.split(",")
+    
+    # ---- 6축 좌표 파싱 ----
+    x  = float(rx_data_s[0])
+    y  = float(rx_data_s[1])
+    z  = float(rx_data_s[2])
+    rx = float(rx_data_s[3])
+    ry = float(rx_data_s[4])
+    rz = float(rx_data_s[5])
+    
+    # ---- 목표 절대 pose 생성 ----
+    target_pos = posx([x, y, z, rx, ry, rz])
+    
+    #target_pos = posx(595.04, 59.19, 322.42, 5.26, 111.56, -118.99)#시뮬 테스트용 좌표 입력
+    
+    # ---- delta 오프셋 (로컬 좌표 기준 Z+ 방향 100mm) ----
+    delta = [0, 0, -100, 0, 0, 0]
+    
+    # ---- 1단계: 목표 지점 100mm 위로 접근 ----
+    approach_pos = trans(target_pos, delta, DR_TOOL)
+    #approach_pos = trans(target_pos, delta)
+    movel(approach_pos, vel=100, acc=100)
+    
+    # ---- 2단계: 목표 지점으로 직선 하강 ----
+    movel(target_pos, vel=30, acc=30)
+    
+    #3단계 다시 떨어지기
+    movel(approach_pos, vel=200, acc=200)
+    
+    
+    
